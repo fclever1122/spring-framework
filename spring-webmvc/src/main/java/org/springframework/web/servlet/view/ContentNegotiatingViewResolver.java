@@ -225,7 +225,9 @@ public class ContentNegotiatingViewResolver extends WebApplicationObjectSupport
 		Assert.state(attrs instanceof ServletRequestAttributes, "No current ServletRequestAttributes");
 		List<MediaType> requestedMediaTypes = getMediaTypes(((ServletRequestAttributes) attrs).getRequest());
 		if (requestedMediaTypes != null) {
+			// 获取候选视图对象
 			List<View> candidateViews = getCandidateViews(viewName, locale, requestedMediaTypes);
+			// 选择一个最适合的视图对象，然后将其返回
 			View bestView = getBestView(candidateViews, requestedMediaTypes, attrs);
 			if (bestView != null) {
 				return bestView;
