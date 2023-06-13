@@ -101,6 +101,7 @@ public final class SpringFactoriesLoader {
 		}
 		List<T> result = new ArrayList<>(factoryImplementationNames.size());
 		for (String factoryImplementationName : factoryImplementationNames) {
+			// 实例化对应的工厂实现类，根据全限定类型，通过反射进行实例化
 			result.add(instantiateFactory(factoryImplementationName, factoryType, classLoaderToUse));
 		}
 		AnnotationAwareOrderComparator.sort(result);
@@ -117,22 +118,34 @@ public final class SpringFactoriesLoader {
 	 * @throws IllegalArgumentException if an error occurs while loading factory names
 	 * @see #loadFactories
 	 */
+	/**
+	 * 加载给定类型的工厂实现的完全限定类名
+	 * @param factoryType	作为key去查找loadSpringFactories的Map中的结果，该结果集就是解析spring.factories
+	 *                      之后封装好的Map结构
+	 * @param classLoader	类加载器
+	 * @return
+	 */
 	public static List<String> loadFactoryNames(Class<?> factoryType, @Nullable ClassLoader classLoader) {
+		// 需要获取具体实现的工厂类的class
 		String factoryTypeName = factoryType.getName();
 		return loadSpringFactories(classLoader).getOrDefault(factoryTypeName, Collections.emptyList());
 	}
 
 	private static Map<String, List<String>> loadSpringFactories(@Nullable ClassLoader classLoader) {
+		// 首先从缓存判断，若有直接取缓存
 		MultiValueMap<String, String> result = cache.get(classLoader);
 		if (result != null) {
 			return result;
 		}
 
 		try {
+			// 查找spring.factories，对于springboot项目
+			// 只存在于spring-boot.jar和spring-boot-autoconfigure.jar中
 			Enumeration<URL> urls = (classLoader != null ?
 					classLoader.getResources(FACTORIES_RESOURCE_LOCATION) :
 					ClassLoader.getSystemResources(FACTORIES_RESOURCE_LOCATION));
 			result = new LinkedMultiValueMap<>();
+			// 处理对应key的所有value值
 			while (urls.hasMoreElements()) {
 				URL url = urls.nextElement();
 				UrlResource resource = new UrlResource(url);
@@ -144,6 +157,7 @@ public final class SpringFactoriesLoader {
 					}
 				}
 			}
+			// 保存到缓存中
 			cache.put(classLoader, result);
 			return result;
 		}
@@ -156,6 +170,7 @@ public final class SpringFactoriesLoader {
 	@SuppressWarnings("unchecked")
 	private static <T> T instantiateFactory(String factoryImplementationName, Class<T> factoryType, ClassLoader classLoader) {
 		try {
+			// 反射
 			Class<?> factoryImplementationClass = ClassUtils.forName(factoryImplementationName, classLoader);
 			if (!factoryType.isAssignableFrom(factoryImplementationClass)) {
 				throw new IllegalArgumentException(
