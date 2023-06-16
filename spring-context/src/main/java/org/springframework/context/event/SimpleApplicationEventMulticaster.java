@@ -147,12 +147,17 @@ public class SimpleApplicationEventMulticaster extends AbstractApplicationEventM
 			其中包含了ApplicationStartingEvent对应的3个监听器实现类
 		3) event=ApplicationContextInitializedEvent
 			能够监听ApplicationContextInitializedEvent事件的监听器，在getApplicationListeners返回2个监听器实现类
-			分别是：BackgroundPreinitializer、DelegatingApplicationListener，但是这俩都没用，处理逻辑中
-			并不针对ApplicationContextInitializedEvent有效
+			分别是：BackgroundPreinitializer、DelegatingApplicationListener
 		4）event=ApplicationPreparedEvent
 			能够监听ApplicationPreparedEvent事件的监听器，在getApplicationListeners返回5个监听器
 			分别是：CloudFoundryVcapEnvironmentPostProcessor、ConfigFileApplicationListener、
 				LoggingApplicationListener、BackgroundPreinitializer、DelegatingApplicationListener
+		5）event=ApplicationStartedEvent
+			能够监听ApplicationStartedEvent事件的监听器，在getApplicationListeners返回2个监听器
+			分别是：BackgroundPreinitializer、DelegatingApplicationListener
+		6）event=ApplicationReadyEvent
+			能够监听ApplicationReadyEvent事件的监听器，在getApplicationListeners返回2个监听器
+			分别是：BackgroundPreinitializer、DelegatingApplicationListener
 		 */
 		for (ApplicationListener<?> listener : getApplicationListeners(event, type)) {
 			if (executor != null) {
