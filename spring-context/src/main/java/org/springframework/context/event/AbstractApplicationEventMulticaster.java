@@ -162,6 +162,7 @@ public abstract class AbstractApplicationEventMulticaster
 	}
 
 	/**
+	 * 返回与给定事件类型匹配的 ApplicationListeners 集合。不匹配的Listener会提前被排除在外。
 	 * Return a Collection of ApplicationListeners matching the given
 	 * event type. Non-matching listeners get excluded early.
 	 * @param event the event to be propagated. Allows for excluding
@@ -193,6 +194,7 @@ public abstract class AbstractApplicationEventMulticaster
 					return retriever.getApplicationListeners();
 				}
 				retriever = new ListenerRetriever(true);
+				// 返回与给定事件类型匹配的 ApplicationListeners 集合。不匹配的Listener会提前被排除在外。
 				Collection<ApplicationListener<?>> listeners =
 						retrieveApplicationListeners(eventType, sourceType, retriever);
 				this.retrieverCache.put(cacheKey, retriever);
@@ -206,6 +208,7 @@ public abstract class AbstractApplicationEventMulticaster
 	}
 
 	/**
+	 * 实际上检索给定事件和源类型的应用程序监听器
 	 * Actually retrieve the application listeners for the given event and source type.
 	 * @param eventType the event type
 	 * @param sourceType the event source type
@@ -219,6 +222,7 @@ public abstract class AbstractApplicationEventMulticaster
 		Set<ApplicationListener<?>> listeners;
 		Set<String> listenerBeans;
 		synchronized (this.retrievalMutex) {
+			// 从spring.factories读取到的ApplicationListener的实现类 sb2.2.2和s5.2.2中有11个
 			listeners = new LinkedHashSet<>(this.defaultRetriever.applicationListeners);
 			listenerBeans = new LinkedHashSet<>(this.defaultRetriever.applicationListenerBeans);
 		}
@@ -226,6 +230,12 @@ public abstract class AbstractApplicationEventMulticaster
 		// Add programmatically registered listeners, including ones coming
 		// from ApplicationListenerDetector (singleton beans and inner beans).
 		for (ApplicationListener<?> listener : listeners) {
+			// 判断监听器是否支持给定的事件和源类型
+			/**
+			 * springBoot启动run方法中getApplicationListeners方法传递的
+			 * eventType=ApplicationStartingEvent
+			 * sourceType=SpringApplication
+			 */
 			if (supportsEvent(listener, eventType, sourceType)) {
 				if (retriever != null) {
 					retriever.applicationListeners.add(listener);

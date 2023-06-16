@@ -76,6 +76,7 @@ public class StopWatch {
 	/**
 	 * Construct a new {@code StopWatch}.
 	 * <p>Does not start any task.
+	 * 创建一个StopWatch
 	 */
 	public StopWatch() {
 		this("");
@@ -116,6 +117,7 @@ public class StopWatch {
 
 
 	/**
+	 * 启动一个未命名的任务
 	 * Start an unnamed task.
 	 * <p>The results are undefined if {@link #stop()} or timing methods are
 	 * called without invoking this method first.
@@ -139,6 +141,11 @@ public class StopWatch {
 			throw new IllegalStateException("Can't start StopWatch: it's already running");
 		}
 		this.currentTaskName = taskName;
+		/**
+		 *     nanoTime() 方法返回一个 long 类型的值，表示自某个固定但未指定的时间点以来经过的纳秒数。
+		 *     它与系统的实际时间没有直接的关联，而是提供了一个相对的时间间隔。
+		 *     在同一次运行中，两次调用 nanoTime() 返回的值之差可以用来测量代码执行的时间间隔。
+		 */
 		this.startTimeNanos = System.nanoTime();
 	}
 

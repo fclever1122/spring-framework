@@ -139,8 +139,7 @@ public final class SpringFactoriesLoader {
 		}
 
 		try {
-			// 查找spring.factories，对于springboot项目
-			// 只存在于spring-boot.jar和spring-boot-autoconfigure.jar中
+			// 查找spring.factories
 			Enumeration<URL> urls = (classLoader != null ?
 					classLoader.getResources(FACTORIES_RESOURCE_LOCATION) :
 					ClassLoader.getSystemResources(FACTORIES_RESOURCE_LOCATION));

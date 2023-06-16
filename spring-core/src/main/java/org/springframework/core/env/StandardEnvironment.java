@@ -75,8 +75,10 @@ public class StandardEnvironment extends AbstractEnvironment {
 	 */
 	@Override
 	protected void customizePropertySources(MutablePropertySources propertySources) {
+		// systemProperties
 		propertySources.addLast(
 				new PropertiesPropertySource(SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME, getSystemProperties()));
+		// systemEnvironment
 		propertySources.addLast(
 				new SystemEnvironmentPropertySource(SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME, getSystemEnvironment()));
 	}

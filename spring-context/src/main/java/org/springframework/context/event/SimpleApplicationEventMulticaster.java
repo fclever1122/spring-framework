@@ -127,15 +127,40 @@ public class SimpleApplicationEventMulticaster extends AbstractApplicationEventM
 		multicastEvent(event, resolveDefaultEventType(event));
 	}
 
+	// applicationStartingEvent是springboot框架最早执行的监听器，在该监听器执行started方法时，会继续发布事件，主要是基于spring的事件机制
 	@Override
 	public void multicastEvent(final ApplicationEvent event, @Nullable ResolvableType eventType) {
 		ResolvableType type = (eventType != null ? eventType : resolveDefaultEventType(event));
+		// 获取执行器，默认为null
 		Executor executor = getTaskExecutor();
+		/*
+			ApplicationListener的实现类进行筛选，共有11个
+		在当下版本中，sb2.2.2 s5.2.2中，
+		1）event=ApplicationStartingEvent
+			能够监听ApplicationStartingEvent事件的监听器，在getApplicationListeners返回4个监听器实现类
+			分别是：LoggingApplicationListener、BackgroundPreinitializer、、DelegatingApplicationListener、LiquibaseServiceLocatorApplicationListener
+		2）event=ApplicationEnvironmentPreparedEvent
+			能够监听ApplicationEnvironmentPreparedEvent事件的监听器，在getApplicationListeners返回7个监听器实现类
+			分别是：ConfigFileApplicationListener、AnsiOutputApplicationListener、LoggingApplicationListener、
+				ClasspathLoggingApplicationListener、BackgroundPreinitializer、DelegatingApplicationListener、
+				FileEncodingApplicationListener
+			其中包含了ApplicationStartingEvent对应的3个监听器实现类
+		3) event=ApplicationContextInitializedEvent
+			能够监听ApplicationContextInitializedEvent事件的监听器，在getApplicationListeners返回2个监听器实现类
+			分别是：BackgroundPreinitializer、DelegatingApplicationListener，但是这俩都没用，处理逻辑中
+			并不针对ApplicationContextInitializedEvent有效
+		4）event=ApplicationPreparedEvent
+			能够监听ApplicationPreparedEvent事件的监听器，在getApplicationListeners返回5个监听器
+			分别是：CloudFoundryVcapEnvironmentPostProcessor、ConfigFileApplicationListener、
+				LoggingApplicationListener、BackgroundPreinitializer、DelegatingApplicationListener
+		 */
 		for (ApplicationListener<?> listener : getApplicationListeners(event, type)) {
 			if (executor != null) {
+				//异步发送事件
 				executor.execute(() -> invokeListener(listener, event));
 			}
 			else {
+				//同步发送事件
 				invokeListener(listener, event);
 			}
 		}
@@ -169,6 +194,7 @@ public class SimpleApplicationEventMulticaster extends AbstractApplicationEventM
 	@SuppressWarnings({"rawtypes", "unchecked"})
 	private void doInvokeListener(ApplicationListener listener, ApplicationEvent event) {
 		try {
+			// 执行具体实现类中重写的onApplicationEvent方法
 			listener.onApplicationEvent(event);
 		}
 		catch (ClassCastException ex) {

@@ -84,6 +84,7 @@ public class AnnotatedBeanDefinitionReader {
 		Assert.notNull(registry, "BeanDefinitionRegistry must not be null");
 		Assert.notNull(environment, "Environment must not be null");
 		this.registry = registry;
+		// 用于处理条件注解（@Conditional，比如@ConditionalOnClass等），用于根据特定条件确定是否要创建或注册 bean
 		this.conditionEvaluator = new ConditionEvaluator(registry, environment, null);
 		AnnotationConfigUtils.registerAnnotationConfigProcessors(this.registry);
 	}
@@ -234,6 +235,7 @@ public class AnnotatedBeanDefinitionReader {
 	}
 
 	/**
+	 * 从给定的class注册一个Bean，同时从类声明的注解中传递元数据信息
 	 * Register a bean from the given bean class, deriving its metadata from
 	 * class-declared annotations.
 	 * @param beanClass the class of the bean
