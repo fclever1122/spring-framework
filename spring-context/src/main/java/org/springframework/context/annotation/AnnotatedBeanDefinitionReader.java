@@ -127,6 +127,7 @@ public class AnnotatedBeanDefinitionReader {
 
 
 	/**
+	 * 注册一个或多个要处理的组件类
 	 * Register one or more component classes to be processed.
 	 * <p>Calls to {@code register} are idempotent; adding the same
 	 * component class more than once has no additional effect.
@@ -140,6 +141,7 @@ public class AnnotatedBeanDefinitionReader {
 	}
 
 	/**
+	 * 从给定的 bean 类注册一个 bean，从类声明的注释中派生其元数据。
 	 * Register a bean from the given bean class, deriving its metadata from
 	 * class-declared annotations.
 	 * @param beanClass the class of the bean
@@ -284,6 +286,7 @@ public class AnnotatedBeanDefinitionReader {
 
 		BeanDefinitionHolder definitionHolder = new BeanDefinitionHolder(abd, beanName);
 		definitionHolder = AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, this.registry);
+		// SpringBoot启动中实际注册主类Bean
 		BeanDefinitionReaderUtils.registerBeanDefinition(definitionHolder, this.registry);
 	}
 

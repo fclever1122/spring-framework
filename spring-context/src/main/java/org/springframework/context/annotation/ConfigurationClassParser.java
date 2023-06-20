@@ -156,8 +156,10 @@ class ConfigurationClassParser {
 		this.environment = environment;
 		this.resourceLoader = resourceLoader;
 		this.registry = registry;
+		// 包扫描
 		this.componentScanParser = new ComponentScanAnnotationParser(
 				environment, resourceLoader, componentScanBeanNameGenerator, registry);
+		// Conditional相关的条件注解
 		this.conditionEvaluator = new ConditionEvaluator(registry, environment, resourceLoader);
 	}
 
@@ -218,6 +220,7 @@ class ConfigurationClassParser {
 
 
 	protected void processConfigurationClass(ConfigurationClass configClass) throws IOException {
+		// 判断一下当前的Configuration class是否要被跳过
 		if (this.conditionEvaluator.shouldSkip(configClass.getMetadata(), ConfigurationPhase.PARSE_CONFIGURATION)) {
 			return;
 		}
@@ -239,6 +242,10 @@ class ConfigurationClassParser {
 			}
 		}
 
+		/*
+		 递归处理 configuration class，递归最初是传入的SpringBoot的启动类，处理启动类的@PropertySource、@ComponentScan、@Import、@ImportResource、@Bean等等
+		 然后是处理启动类上的一些注解属性，当处理@ComponentScan的时候，也会依次递归处理扫描包下的所有bean，并调用ConfigurationClassParser.parse方法进行解析，逻辑与当前基本一致
+		 */
 		// Recursively process the configuration class and its superclass hierarchy.
 		SourceClass sourceClass = asSourceClass(configClass);
 		do {
@@ -260,13 +267,14 @@ class ConfigurationClassParser {
 	@Nullable
 	protected final SourceClass doProcessConfigurationClass(ConfigurationClass configClass, SourceClass sourceClass)
 			throws IOException {
-
+		// 判断启动类是否有@Component注解（父子可继承）
 		if (configClass.getMetadata().isAnnotated(Component.class.getName())) {
 			// Recursively process any member (nested) classes first
 			processMemberClasses(configClass, sourceClass);
 		}
 
 		// Process any @PropertySource annotations
+		// 处理任何@PropertySource 注解  启动类不包含
 		for (AnnotationAttributes propertySource : AnnotationConfigUtils.attributesForRepeatable(
 				sourceClass.getMetadata(), PropertySources.class,
 				org.springframework.context.annotation.PropertySource.class)) {
@@ -280,14 +288,18 @@ class ConfigurationClassParser {
 		}
 
 		// Process any @ComponentScan annotations
+		// 处理所有@ComponentScan注解，@SpringBootApplication注解的父级只有一个
 		Set<AnnotationAttributes> componentScans = AnnotationConfigUtils.attributesForRepeatable(
 				sourceClass.getMetadata(), ComponentScans.class, ComponentScan.class);
 		if (!componentScans.isEmpty() &&
 				!this.conditionEvaluator.shouldSkip(sourceClass.getMetadata(), ConfigurationPhase.REGISTER_BEAN)) {
 			for (AnnotationAttributes componentScan : componentScans) {
 				// The config class is annotated with @ComponentScan -> perform the scan immediately
+				// 配置类用@ComponentScan注解->立即执行扫描
+				// 主要是解析@ComponentScan注解的各个属性值的配置信息，并扫描basePackages对应包下的所有bean信息，返回的scannedBeanDefinitions就是扫描结果
 				Set<BeanDefinitionHolder> scannedBeanDefinitions =
 						this.componentScanParser.parse(componentScan, sourceClass.getMetadata().getClassName());
+				// 处理扫描包下的所有Bean，并递归进行处理
 				// Check the set of scanned definitions for any further config classes and parse recursively if needed
 				for (BeanDefinitionHolder holder : scannedBeanDefinitions) {
 					BeanDefinition bdCand = holder.getBeanDefinition().getOriginatingBeanDefinition();
@@ -295,6 +307,7 @@ class ConfigurationClassParser {
 						bdCand = holder.getBeanDefinition();
 					}
 					if (ConfigurationClassUtils.checkConfigurationClassCandidate(bdCand, this.metadataReaderFactory)) {
+						// 递归对每个bean 也需要进行解析，整体解析流程和当前类似
 						parse(bdCand.getBeanClassName(), holder.getBeanName());
 					}
 				}
@@ -302,9 +315,20 @@ class ConfigurationClassParser {
 		}
 
 		// Process any @Import annotations
+		/*
+		（在这之前已经把启动类上配置的包扫描中新的Bean已经处理完了类似的流程）
+		 处理所有@Import注解
+		 SpringBoot启动主类中父级包含该注解：
+		 	@SpringBootApplication-》 @EnableAutoConfiguration-》@Import(AutoConfigurationImportSelector.class)
+		 	@SpringBootApplication-》 @EnableAutoConfiguration-》@AutoConfigurationPackage-》@Import(AutoConfigurationPackages.Registrar.class)
+
+		 	这里处理的是SpringBoot扫描包下面的Bean的类上的注解，不包括启动类
+		 	getImports(sourceClass)最终得到两个结果
+		 */
 		processImports(configClass, sourceClass, getImports(sourceClass), true);
 
 		// Process any @ImportResource annotations
+		// 处理所有@ImportResource注解  SpringBoot启动类（含父级）默认不包含该注解
 		AnnotationAttributes importResource =
 				AnnotationConfigUtils.attributesFor(sourceClass.getMetadata(), ImportResource.class);
 		if (importResource != null) {
@@ -317,15 +341,18 @@ class ConfigurationClassParser {
 		}
 
 		// Process individual @Bean methods
+		// 处理单个@Bean 方法，SpringBoot启动类（含父级）默认不包含
 		Set<MethodMetadata> beanMethods = retrieveBeanMethodMetadata(sourceClass);
 		for (MethodMetadata methodMetadata : beanMethods) {
 			configClass.addBeanMethod(new BeanMethod(methodMetadata, configClass));
 		}
 
 		// Process default methods on interfaces
+		// 处理接口上的默认方法  SpringBoot启动类（含父级）默认不包含
 		processInterfaces(configClass, sourceClass);
 
 		// Process superclass, if any
+		// 处理父类 继承关系上的父类，是Object
 		if (sourceClass.getMetadata().hasSuperClass()) {
 			String superclass = sourceClass.getMetadata().getSuperClassName();
 			if (superclass != null && !superclass.startsWith("java") &&
@@ -337,6 +364,7 @@ class ConfigurationClassParser {
 		}
 
 		// No superclass -> processing is complete
+		// 没有父类？处理结束返回
 		return null;
 	}
 
@@ -511,11 +539,14 @@ class ConfigurationClassParser {
 	private Set<SourceClass> getImports(SourceClass sourceClass) throws IOException {
 		Set<SourceClass> imports = new LinkedHashSet<>();
 		Set<SourceClass> visited = new LinkedHashSet<>();
+		// 递归处理class及父级中的@Import注解
 		collectImports(sourceClass, imports, visited);
+		// 返回得到的汇总结果
 		return imports;
 	}
 
 	/**
+	 * 递归处理@Import注解
 	 * Recursively collect all declared {@code @Import} values. Unlike most
 	 * meta-annotations it is valid to have several {@code @Import}s declared with
 	 * different values; the usual process of returning values from the first

@@ -152,6 +152,7 @@ public abstract class BeanDefinitionReaderUtils {
 	}
 
 	/**
+	 * 向给定的 bean 工厂注册给定的 bean 定义
 	 * Register the given bean definition with the given bean factory.
 	 * @param definitionHolder the bean definition including name and aliases
 	 * @param registry the bean factory to register with
@@ -163,6 +164,7 @@ public abstract class BeanDefinitionReaderUtils {
 
 		// Register bean definition under primary name.
 		// 在主要名称下注册 bean 定义。
+		// springboot主类类名
 		String beanName = definitionHolder.getBeanName();
 		registry.registerBeanDefinition(beanName, definitionHolder.getBeanDefinition());
 

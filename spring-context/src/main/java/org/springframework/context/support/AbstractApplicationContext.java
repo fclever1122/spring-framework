@@ -537,6 +537,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				postProcessBeanFactory(beanFactory);
 
 				// Invoke factory processors registered as beans in the context.
+				/*
+				（这里包含了  自动装配  的主要逻辑）
+				1）在方法applyInitializers中，向context的beanFactoryPostProcessors中添加了两个postProcessor
+				2）其他步骤中也添加了一个ConfigFileApplicationListener$PropertySourceOrderingPostPorcessor
+				 */
 				// 激活各种beanfactory处理器
 				invokeBeanFactoryPostProcessors(beanFactory);
 
@@ -723,11 +728,13 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	}
 
 	/**
+	 * 实例化并调用所有已注册的 BeanFactoryPostProcessor beans，如果给定则遵守显式顺序。必须在单例实例化之前调用。
 	 * Instantiate and invoke all registered BeanFactoryPostProcessor beans,
 	 * respecting explicit order if given.
 	 * <p>Must be called before singleton instantiation.
 	 */
 	protected void invokeBeanFactoryPostProcessors(ConfigurableListableBeanFactory beanFactory) {
+		// 开始实例化  BeanFactoryPostProcessors，SpringBoot启动有3个
 		PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(beanFactory, getBeanFactoryPostProcessors());
 
 		// Detect a LoadTimeWeaver and prepare for weaving, if found in the meantime
