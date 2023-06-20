@@ -538,7 +538,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 				// Invoke factory processors registered as beans in the context.
 				/*
-				（这里包含了  自动装配  的主要逻辑）
+				（自动装配的入口）
 				1）在方法applyInitializers中，向context的beanFactoryPostProcessors中添加了两个postProcessor
 				2）其他步骤中也添加了一个ConfigFileApplicationListener$PropertySourceOrderingPostPorcessor
 				 */

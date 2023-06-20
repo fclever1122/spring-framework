@@ -68,7 +68,7 @@ final class PostProcessorRegistrationDelegate {
 
 			/**
 			 * 分组，同时也含有一些注册bean的操作（含有inner bean）
-			 *
+			 * 开始遍历三个内部类，如果属于BeanDefinitionRegistryPostProcessor子类，加入到bean注册的集合，否则加入到regularPostProcessors
 			 */
 			for (BeanFactoryPostProcessor postProcessor : beanFactoryPostProcessors) {
 				if (postProcessor instanceof BeanDefinitionRegistryPostProcessor) {
@@ -102,12 +102,19 @@ final class PostProcessorRegistrationDelegate {
 			List<BeanDefinitionRegistryPostProcessor> currentRegistryProcessors = new ArrayList<>();
 
 			// First, invoke the BeanDefinitionRegistryPostProcessors that implement PriorityOrdered.
+			/*
+			通过BeanDefinitionRegistryPostProcessor获取到对应的处理类“org.springframework.context.annotation.internalConfigurationAnnotationProcessor”，
+			但是需要注意的是这个类在springboot中搜索不到，这个类的完全限定名在AnnotationConfigEmbeddedWebApplicationContext中，在进行初始化的时候会装配几个类，
+			在创建AnnotatedBeanDefinitionReader对象的时候会将该类注册到bean对象中，此处可以看到internalConfigurationAnnotationPro
+			 */
 			// 首先，实例化实现了PriorityOrdered的BeanDefinitionRegistryPostProcessors
 			String[] postProcessorNames =
 					beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor.class, true, false);
 			for (String ppName : postProcessorNames) {
 				if (beanFactory.isTypeMatch(ppName, PriorityOrdered.class)) {
+					//获取对应的bean
 					currentRegistryProcessors.add(beanFactory.getBean(ppName, BeanDefinitionRegistryPostProcessor.class));
+					//用来存储已经执行过的BeanDefinitionRegistryPostProcessor
 					processedBeans.add(ppName);
 				}
 			}
@@ -123,6 +130,7 @@ final class PostProcessorRegistrationDelegate {
 					ConfigFileApplicationListener$PropertySourceOrderingPostPorcessor
 			 */
 			// currentRegistryProcessors只含有一个ConfigurationClassPostProcessor
+			//开始执行装配逻辑
 			invokeBeanDefinitionRegistryPostProcessors(currentRegistryProcessors, registry);
 			currentRegistryProcessors.clear();
 
@@ -141,7 +149,7 @@ final class PostProcessorRegistrationDelegate {
 			currentRegistryProcessors.clear();
 
 			// Finally, invoke all other BeanDefinitionRegistryPostProcessors until no further ones appear.
-			// 最后，实例化剩下所有的BeanDefinitionRegistryPostProcessors
+			// 循环中执行类型不为PriorityOrdered，Ordered类型的BeanDefinitionRegistryPostProcessor
 			boolean reiterate = true;
 			while (reiterate) {
 				reiterate = false;

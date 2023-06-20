@@ -168,6 +168,7 @@ class ConfigurationClassParser {
 		for (BeanDefinitionHolder holder : configCandidates) {
 			BeanDefinition bd = holder.getBeanDefinition();
 			try {
+				// 是否是注解类
 				if (bd instanceof AnnotatedBeanDefinition) {
 					parse(((AnnotatedBeanDefinition) bd).getMetadata(), holder.getBeanName());
 				}
@@ -186,7 +187,7 @@ class ConfigurationClassParser {
 						"Failed to parse configuration class [" + bd.getBeanClassName() + "]", ex);
 			}
 		}
-
+		// 执行配置类
 		this.deferredImportSelectorHandler.process();
 	}
 
@@ -249,6 +250,7 @@ class ConfigurationClassParser {
 		// Recursively process the configuration class and its superclass hierarchy.
 		SourceClass sourceClass = asSourceClass(configClass);
 		do {
+			// 循环处理bean,如果有父类，则处理父类，直至结束
 			sourceClass = doProcessConfigurationClass(configClass, sourceClass);
 		}
 		while (sourceClass != null);
@@ -293,6 +295,7 @@ class ConfigurationClassParser {
 				sourceClass.getMetadata(), ComponentScans.class, ComponentScan.class);
 		if (!componentScans.isEmpty() &&
 				!this.conditionEvaluator.shouldSkip(sourceClass.getMetadata(), ConfigurationPhase.REGISTER_BEAN)) {
+			// 遍历项目中的bean，如果是注解定义的bean，则进一步解析
 			for (AnnotationAttributes componentScan : componentScans) {
 				// The config class is annotated with @ComponentScan -> perform the scan immediately
 				// 配置类用@ComponentScan注解->立即执行扫描
@@ -316,6 +319,7 @@ class ConfigurationClassParser {
 
 		// Process any @Import annotations
 		/*
+		递归解析，获取导入的配置类，很多情况下，导入的配置类中会同样包含导入类注解
 		（在这之前已经把启动类上配置的包扫描中新的Bean已经处理完了类似的流程）
 		 处理所有@Import注解
 		 SpringBoot启动主类中父级包含该注解：
