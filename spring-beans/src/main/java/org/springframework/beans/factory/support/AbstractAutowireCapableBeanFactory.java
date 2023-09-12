@@ -548,14 +548,16 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	protected Object doCreateBean(final String beanName, final RootBeanDefinition mbd, final @Nullable Object[] args)
 			throws BeanCreationException {
 
-		// Instantiate the bean.
+		// Instantiate the bean. 实例化
 		BeanWrapper instanceWrapper = null;
 		if (mbd.isSingleton()) {
 			instanceWrapper = this.factoryBeanInstanceCache.remove(beanName);
 		}
 		if (instanceWrapper == null) {
+			// 调用构造器或工厂方法 实例化
 			instanceWrapper = createBeanInstance(beanName, mbd, args);
 		}
+		//我们通常说的bean实例,bean的原始对象,并没有进行初始化的对象 A{ b:null}
 		final Object bean = instanceWrapper.getWrappedInstance();
 		Class<?> beanType = instanceWrapper.getWrappedClass();
 		if (beanType != NullBean.class) {
@@ -563,6 +565,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		// Allow post-processors to modify the merged bean definition.
+		// 允许后处理器修改合并的bean定义。
 		synchronized (mbd.postProcessingLock) {
 			if (!mbd.postProcessed) {
 				try {
@@ -578,20 +581,34 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// Eagerly cache singletons to be able to resolve circular references
 		// even when triggered by lifecycle interfaces like BeanFactoryAware.
+		//表示是否提前暴露原始对象的引用,对于单例的bean,一般来说为true,
+		// 可以通过allowCircularReferences关闭循环引用解决循环依赖问题
 		boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences &&
 				isSingletonCurrentlyInCreation(beanName));
+		//是否允许单例提前暴露
 		if (earlySingletonExposure) {
 			if (logger.isTraceEnabled()) {
 				logger.trace("Eagerly caching bean '" + beanName +
 						"' to allow for resolving potential circular references");
 			}
+			//调用这个方法,将一个ObjectFactory放进三级缓存,二级缓存会对应删除
+			//getEarlyBeanReference方法:
+			// 		1、如果有SmartInstantiationAwareBeanPostProcessor,调用他的getEarlyBeanReference方法,
+			//		2、如果没有,则不变还是,exposedObject
+			//这里也是AOP的实现之处,AbstractAutoProxyCreator implements SmartInstantiationAwareBeanPostProcessor
+
+			// 在bean实例化后,属性注入之前,Spring将bean包装成一个工厂添加进三级缓存中
 			addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
 		}
 
-		// Initialize the bean instance.
+		// Initialize the bean instance.\
+		//此时bean已经实例化完成， 开始准备初始化
+		// bean为原始对象
 		Object exposedObject = bean;
 		try {
+			//负责属性的装配(如依赖注入)，遇到循环依赖的情况，会在内部getBean("b")->getSingleton(b)
 			populateBean(beanName, mbd, instanceWrapper);
+			//处理bean初始化完成后的各种回调这里有可能返回一个代理对象
 			exposedObject = initializeBean(beanName, exposedObject, mbd);
 		}
 		catch (Throwable ex) {
@@ -603,10 +620,13 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 						mbd.getResourceDescription(), beanName, "Initialization of bean failed", ex);
 			}
 		}
-
+		//如果bean允许被早期暴露,进入代码
 		if (earlySingletonExposure) {
+			//第二参数为false表示不会从三级缓存中在检查，最多从二级缓存中找，其实二级缓存就够了，
+			// 其实之前getSingleton的时候，已经触发了A 的ObjectFactory.getObject()，A实例已经放入二级缓存中
 			Object earlySingletonReference = getSingleton(beanName, false);
 			if (earlySingletonReference != null) {
+				//如果没有代理，进入这个分支
 				if (exposedObject == bean) {
 					exposedObject = earlySingletonReference;
 				}
@@ -621,11 +641,11 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 					if (!actualDependentBeans.isEmpty()) {
 						throw new BeanCurrentlyInCreationException(beanName,
 								"Bean with name '" + beanName + "' has been injected into other beans [" +
-								StringUtils.collectionToCommaDelimitedString(actualDependentBeans) +
-								"] in its raw version as part of a circular reference, but has eventually been " +
-								"wrapped. This means that said other beans do not use the final version of the " +
-								"bean. This is often the result of over-eager type matching - consider using " +
-								"'getBeanNamesOfType' with the 'allowEagerInit' flag turned off, for example.");
+										StringUtils.collectionToCommaDelimitedString(actualDependentBeans) +
+										"] in its raw version as part of a circular reference, but has eventually been " +
+										"wrapped. This means that said other beans do not use the final version of the " +
+										"bean. This is often the result of over-eager type matching - consider using " +
+										"'getBeanNamesOfType' with the 'allowEagerInit' flag turned off, for example.");
 					}
 				}
 			}
@@ -956,12 +976,16 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 * @param bean the raw bean instance
 	 * @return the object to expose as bean reference
 	 */
+	/**
+	 * 获取用于提前访问指定bean的参考，通常用于解析循环引用。
+	 */
 	protected Object getEarlyBeanReference(String beanName, RootBeanDefinition mbd, Object bean) {
 		Object exposedObject = bean;
 		if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
 			for (BeanPostProcessor bp : getBeanPostProcessors()) {
 				if (bp instanceof SmartInstantiationAwareBeanPostProcessor) {
 					SmartInstantiationAwareBeanPostProcessor ibp = (SmartInstantiationAwareBeanPostProcessor) bp;
+					//调用后值处理器的getEarlyBeanReference
 					exposedObject = ibp.getEarlyBeanReference(exposedObject, beanName);
 				}
 			}
