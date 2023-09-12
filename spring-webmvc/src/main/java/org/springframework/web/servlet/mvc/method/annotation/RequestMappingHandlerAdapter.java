@@ -785,6 +785,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 			}
 			else {
 				// No HttpSession available -> no mutex necessary
+				// 执行方法，封装 ModelAndView
 				mav = invokeHandlerMethod(request, response, handlerMethod);
 			}
 		}
