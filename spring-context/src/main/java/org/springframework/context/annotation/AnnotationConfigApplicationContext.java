@@ -63,7 +63,9 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	 * through {@link #register} calls and then manually {@linkplain #refresh refreshed}.
 	 */
 	public AnnotationConfigApplicationContext() {
+		//初始化读取bean定义的读取器，完成Spring内部bean定义的注册
 		this.reader = new AnnotatedBeanDefinitionReader(this);
+		//初始化一个类扫描器，其实这个方法进来，是没有用到这个扫描器的
 		this.scanner = new ClassPathBeanDefinitionScanner(this);
 	}
 
@@ -84,8 +86,11 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	 * {@link Configuration @Configuration} classes
 	 */
 	public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
+		//初始化容器，创建bean工厂，加载各种内部重要类的bean定义，用于初始化我们或者其他引入类
 		this();
+		//注册我们配置类的bean定义，初始化容器，从这个类开始
 		register(componentClasses);
+		//准备工作做好后，开始初始化容器
 		refresh();
 	}
 
@@ -157,6 +162,7 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	@Override
 	public void register(Class<?>... componentClasses) {
 		Assert.notEmpty(componentClasses, "At least one component class must be specified");
+		//使用上面初始化的bean定义读取器，去注册我们配置类的bean定义
 		this.reader.register(componentClasses);
 	}
 
